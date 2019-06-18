@@ -1,5 +1,8 @@
 version: "3"
 
+volumes:
+  unixsocket:
+
 services:
 
   prometheus:
@@ -10,16 +13,26 @@ services:
       - "./prometheus.yml:/etc/prometheus/prometheus.yml"
 
   phpfpm:
-    image: hipages/php
-    ports:
-      - "9000:9000"
-    environment:
-      PHP_FPM_PM_STATUS_PATH: "/status"
+    # image: hipages/php
+    image: php:fpm
+    # ports:
+    #   - "9000:9000"
+    # environment:
+    #   PHP_FPM_PM_STATUS_PATH: "/php-fpm-status"
+    volumes:
+      - ./zz-docker.conf:/usr/local/etc/php-fpm.d/zz-docker.conf
+      - unixsocket:/var/run/
 
   exporter:
     image: hipages/php-fpm_exporter:0.0.4
     ports:
       - "9253:9253"
-    environment:
-      PHP_FPM_SCRAPE_URI: "tcp://phpfpm:9000/status"
-      PHP_FPM_LOG_LEVEL: "debug"
+    volumes:
+      - unixsocket:/var/run/
+    # environment:
+      # PHP_FPM_SCRAPE_URI: "tcp://phpfpm:9000/status"
+      # PHP_FPM_LOG_LEVEL: "debug"
+      
+      # PHP_FPM_SCRAPE_URI: "unix:///var/run/php-fpm.sock;/php-fpm-status"
+      # PHP_FPM_LOG_LEVEL: "debug"
+    command: " --phpfpm.scrape-uri unix:///var/run/php-fpm.sock;/php-fpm-status --log.level debug "
